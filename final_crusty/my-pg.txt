@@ -1,0 +1,49 @@
+
+
+My logic
+The way my logic works is that I create a header structure where I store the page Id, the offset of the last added record, the number of records, the number of deleted records at any given point in time and finally I have a vector called deleted slots where I store the Id of slots deleted. My starting header size with no added records is 8 bytes.
+I then create a structure called metadata where I store the variable record size and offset.  Each metadata is 4 bytes large. For every record added in the page I map it to its corresponding metadata where I store that records offset and it’s size in bytes
+In the page structure  I therefore store my data, the header, and a vector of metadata structs.
+When adding in records I add them from the back of the page so the way my page is laid out is
+    1.    Header
+    2.    Metadata
+    3.    Free space
+    4.    Added records
+So if I have two records my page will visually be laid out like this:
+1 header
+2 metadata for record one
+3 metadata for record two
+4 free space
+5 record 2
+6 record 1
+Describing my add value function:
+For my add value function I first check to see the edge case, whether the offset of the last position in my header is equal to page size -1 since my indexing in data starts at 0.
+Then I check to see if I have deleted slots and call my overwrite function
+In my overwrite function I first loop through all the slot ids in the deleted slot vector and check to see if I can fit in the value I want to add in the space available corresponding to my deleted slot ids.
+If the value I want to add in is too large to fit in any of the available deleted slots, I add in the value normally in the free contiguous space and map to it the first deleted slot in my deleted slots vector. In this way I reuse slot ids.
+If there are no deleted slots and i am not at the edge case I add in my record in the free contiguous space and give it a new metadata.
+Describing my deleting function
+I first check to see if the slot Id I want to delete is valid by checking it against the amount of records variable.
+If it is valid I add the deleted value to the deleted slots vector
+Describing the Get value function
+I first check to see if the id that I want to read is valid and then I check if it’s is deleted.
+If it is deleted I return none otherwise I read the value by indexing into data correctly.
+I ran into issues when developing the next function as if I detected that the slot ids was deleted I increased the index by one. However I then realized that  I also had to check if that increased slot Id was also deleted. I considered recursion and nested for loops but my limited coding knowledge of rust prevented me from coding that. I finally was able to develop a while loop with condition while i < number of delays (stored in header) and if I encountered a delete I would just set i back to 0 so that the while loop would re check against the entire deleted vector whether the updated index was deleted.
+Another issue I ran into was when developing the function from bytes. When trying to form the deleted slot vector and vector of metadata I realized I had no way of knowing how many times I should loop through the bytes to retrieve each slotted index for my deleted slots and metadata vector.
+I therefore had to go back to my header structure and store the two variable number of records and number of deletes at any given point in time. This was quite annoying as I then had to scan my code and update those variables correctly.
+Advantages of my logic
+My logic makes deleting a value  easy as all I have to do is add that slot Id to the deleted slots vector and make it available to be overwritten. I don’t shift any records around which is tedious and takes up memory.
+Because of my logic I don’t have to store my slot ids I just have to index correctly in the metadata structure to retrieve the two important values I need for each record: it’s offset and size.
+Disadvantages
+
+
+
+
+
+
+The problem of my logic for deletion is that if the value I want to add in doesn’t fit into my of the available spaces of the deleted slots I just add it normally in the free contiguous space and assign it the first value in my deleted slots vector, this means the deleted space that used to be mapped by that deleted slot become redundant.
+To improve my deleted slots logic I should sort the deleted slots in the deleted vector by smallest to largest available space to use deleted space optimally.
+I spent around 35 hours if not more on this milestone. It took me a while to understand the logic and then coding in rust with barely any available documentation and previous exposure to it on top of the logic was extremely difficult to handle. I think this assignment was extremely difficult and too time consuming and has caused me to be extremely behind on all my other classes.
+I also think the instructions were not clear - there isn’t even a crusty db assignment on canvas to keep track of everything. The project was very disorganized.
+The one positive is that I guess I’m extremely proud of myself for having finished the project and my understanding of file organization has really improved.
+I completed all functions however there is one hidden test that I was not able to pass. I would like to take the time to understand what that test is and go back in my code to make sure I pass all the hidden tests and make sure my code and logic is robust. I also want to go back and order the slots in my deleted vector in order of record size from smallest to largest to make sure i use deleted space optimally.
