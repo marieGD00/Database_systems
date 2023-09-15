@@ -1,2 +1,2 @@
-# winter-2022-databas
+# winter-2022-database
 I developed a storage manager in Rust as part of my academic project for the class: Introduction to database systems
